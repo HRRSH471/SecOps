@@ -11,12 +11,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # Step 1: Display received application information
+      # --------------------------------------------------
       - name: Display Received Application Information
         run: |
-          echo "======================================"
+          echo "=========================================="
           echo "SecOps Repo Received Application Trigger"
-          echo "======================================"
+          echo "=========================================="
+
           echo "Application Repository: ${{ github.event.client_payload.repository }}"
           echo "Application Branch: ${{ github.event.client_payload.branch }}"
           echo "Application Commit SHA: ${{ github.event.client_payload.commit_sha }}"
-          echo "Event Type: ${{ github.event.action }}" 
+          echo "Event Type: ${{ github.event.action }}"
+
+
+      # --------------------------------------------------
+      # Step 2: Checkout exact application commit
+      # --------------------------------------------------
+      - name: Checkout Exact Application Commit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.client_payload.repository }}
+          ref: ${{ github.event.client_payload.commit_sha }}
+          token: ${{ secrets.APPLICATION_REPO_READ_TOKEN }}
+          path: application
+
+
+      # --------------------------------------------------
+      # Step 3: Verify checked out commit
+      # --------------------------------------------------
+      - name: Verify Checked Out Commit
+        run: |
+          echo "=========================================="
+          echo "Application Source Successfully Checked Out"
+          echo "=========================================="
+
+          echo "Expected Commit:"
+          echo "${{ github.event.client_payload.commit_sha }}"
+
+          echo "Actual Checked Out Commit:"
+          git -C application rev-parse HEAD
+
+
+      # --------------------------------------------------
+      # Step 4: Scan application for leaked secrets
+      # --------------------------------------------------
+      - name: Scan for Application Secrets
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}/application:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            detect \
+            --source=/repo \
+            --no-banner \
+            --exit-code 1
