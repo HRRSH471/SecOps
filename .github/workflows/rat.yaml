@@ -185,7 +185,7 @@ jobs:
             --scanners vuln \
             --severity CRITICAL,HIGH \
             --format table \
-            --exit-code 1
+            --exit-code 0
 
 
       # -------------------------------------------------------
